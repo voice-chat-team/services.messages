@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { RpcException } from '@nestjs/microservices';
 import { RpcStatus } from '@voice-chat/common';
-import { ChannelType } from '@voice-chat/contracts/gen/guilds';
 import type {
   DeleteMessageRequest,
   GetChannelMessagesRequest,
@@ -13,6 +12,7 @@ import type { Message as MessageEntity } from 'prisma/generated/client';
 import { CentrifugoService } from 'src/infrastructure/centrifugo/centrifugo.service';
 import { PrismaService } from 'src/infrastructure/prisma/prisma.service';
 import { GuildClientGrpc } from '../guild/guild.grpc';
+import { ChannelType } from '@voice-chat/contracts/dist/constants';
 
 const DEFAULT_MESSAGES_LIMIT = 50;
 
@@ -144,6 +144,7 @@ export class MessagesService {
       });
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (channel.type !== ChannelType.TEXT) {
       throw new RpcException({
         code: RpcStatus.INVALID_ARGUMENT,
