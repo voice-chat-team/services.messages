@@ -1,0 +1,31 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "./generated"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Message {
+  id String @id @default(uuid())
+
+  channelId String @map("channel_id")
+  guildId   String @map("guild_id")
+  senderId  String @map("sender_id")
+
+  content String @map("content")
+
+  isEdited  Boolean @default(false) @map("is_edited")
+  isDeleted Boolean @default(false) @map("is_deleted")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([channelId, createdAt])
+  @@map("messages")
+}

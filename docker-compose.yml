@@ -1,0 +1,13 @@
+services:
+  messages-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/voice-chat-team/voice-chat-messages-service:latest
+    networks:
+      - voice-chat-network
+    restart: unless-stopped
+
+networks:
+  voice-chat-network:
+    external: true
