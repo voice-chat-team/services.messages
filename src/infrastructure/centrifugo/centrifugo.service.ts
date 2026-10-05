@@ -30,7 +30,29 @@ export class CentrifugoService {
       );
       return true;
     } catch (error) {
-      console.error('Ошибка отправки в Centrifugo:', error);
+      console.error('Ошибка отправки в Centrifugo publish:', error);
+      return false;
+    }
+  }
+
+  async broadcast(channels: string[], data: unknown) {
+    try {
+      await axios.post(
+        this._CENTRIFUGO_URL + '/api/broadcast',
+        {
+          channels,
+          data,
+        },
+        {
+          headers: {
+            Authorization: `apikey ${this._CENTRIFUGO_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+      return true;
+    } catch (error) {
+      console.error('Ошибка отправки в Centrifugo broadcast:', error);
       return false;
     }
   }
