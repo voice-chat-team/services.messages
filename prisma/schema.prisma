@@ -2,8 +2,8 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client"
-  output   = "./generated"
+  provider     = "prisma-client"
+  output       = "./generated"
   moduleFormat = "cjs"
 }
 
@@ -26,6 +26,25 @@ model Message {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  attachments MessageAttachment[]
+
   @@index([channelId, createdAt])
   @@map("messages")
+}
+
+model MessageAttachment {
+  id String @id @default(uuid())
+
+  messageId String  @map("message_id")
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  fileId      String @unique @map("file_id")
+  fileName    String @map("file_name")
+  contentType String @map("content_type")
+  sizeBytes   BigInt @map("size_bytes")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([messageId])
+  @@map("message_attachments")
 }

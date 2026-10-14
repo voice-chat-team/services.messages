@@ -3,13 +3,15 @@ import { GrpcMethod } from '@nestjs/microservices';
 import type {
   DeleteMessageRequest,
   DeleteMessageResponse,
+  GetAttachmentDownloadUrlRequest,
+  GetAttachmentDownloadUrlResponse,
   GetChannelMessagesRequest,
   GetChannelMessagesResponse,
   SendMessageRequest,
   SendMessageResponse,
   UpdateMessageRequest,
   UpdateMessageResponse,
-} from '@voice-chat/contracts/gen/messages';
+} from '@voice-chat/contracts/gen/ts/messages';
 import { MessagesService } from './messages.service';
 
 @Controller()
@@ -48,5 +50,12 @@ export class MessagesController {
     const success = await this.messagesService.deleteMessage(request);
 
     return { success };
+  }
+
+  @GrpcMethod('MessageService', 'GetAttachmentDownloadUrl')
+  getAttachmentDownloadUrl(
+    request: GetAttachmentDownloadUrlRequest,
+  ): Promise<GetAttachmentDownloadUrlResponse> {
+    return this.messagesService.getAttachmentDownloadUrl(request);
   }
 }

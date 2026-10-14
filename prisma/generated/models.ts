@@ -9,4 +9,5 @@
  * 🟢 You can import this file directly.
  */
 export type * from './models/Message.js'
+export type * from './models/MessageAttachment.js'
 export type * from './commonInputTypes.js'

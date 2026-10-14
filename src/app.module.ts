@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { CentrifugoModule } from './infrastructure/centrifugo/centrifugo.module';
 import { PrismaModule } from './infrastructure/prisma/prisma.module';
+import { FileModule } from './modules/file/file.module';
 import { GuildModule } from './modules/guild/guild.module';
 import { MessagesModule } from './modules/messages/messages.module';
 
@@ -14,6 +15,7 @@ import { MessagesModule } from './modules/messages/messages.module';
     PrismaModule,
     CentrifugoModule,
     GuildModule,
+    FileModule,
     MessagesModule,
   ],
   controllers: [],
