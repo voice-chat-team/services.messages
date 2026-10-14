@@ -70,7 +70,7 @@ export class MessagesService {
               fileId: file.id,
               fileName: file.fileName,
               contentType: file.contentType,
-              sizeBytes: file.sizeBytes,
+              sizeBytes: Number(file.sizeBytes),
             })),
           },
         },

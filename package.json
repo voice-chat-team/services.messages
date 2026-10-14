@@ -28,7 +28,7 @@
     "@nestjs/platform-express": "^11.0.1",
     "@prisma/adapter-pg": "^7.9.0",
     "@prisma/client": "^7.9.0",
-    "@voice-chat/common": "^1.0.21",
+    "@voice-chat/common": "^1.0.22",
     "@voice-chat/contracts": "^1.1.2",
     "axios": "^1.18.1",
     "cross-env": "^10.1.0",
