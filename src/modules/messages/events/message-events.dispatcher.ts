@@ -4,15 +4,12 @@ import {
   OnApplicationBootstrap,
   OnModuleDestroy,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression, Interval } from '@nestjs/schedule';
-import { NotificationType } from '@voice-chat/contracts/dist/constants';
-import type { Message } from '@voice-chat/contracts/gen/ts/messages';
 import type { MessageEventType } from 'prisma/generated/client';
 import { CentrifugoService } from 'src/infrastructure/centrifugo/centrifugo.service';
 import { PrismaService } from 'src/infrastructure/prisma/prisma.service';
 import { GuildClientGrpc } from '../../guild/guild.grpc';
-import { MessageMapper, type MessageEntity } from '../message.mapper';
+import { MessageMapper } from '../message.mapper';
 import {
   personalMessagesChannel,
   type MessageCreatedMeta,
@@ -34,7 +31,6 @@ const BROADCAST_CHUNK_SIZE = 500;
 // событие. Цена: новый участник начнёт получать события с задержкой до TTL,
 // а забаненный — перестанет.
 const GUILD_CACHE_TTL_MS = 15_000;
-const MESSAGE_PREVIEW_LENGTH = 200;
 
 type OutboxRow = {
   id: bigint;
@@ -58,21 +54,13 @@ export class MessageEventsDispatcher
   private _rerun = false;
   private _stopped = false;
   private readonly _guilds = new Map<string, GuildRecipients>();
-  // Переходный режим: старые клиенты слушают MESSAGE_* в guild-channel и
-  // NEW_GUILD_MESSAGE в личном канале. Выключить (MESSAGE_EVENTS_LEGACY=false)
-  // и удалить, когда старых версий клиента не останется.
-  private readonly _legacyEvents: boolean;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly guildClient: GuildClientGrpc,
     private readonly centrifugoClient: CentrifugoService,
     private readonly mapper: MessageMapper,
-    configService: ConfigService,
-  ) {
-    this._legacyEvents =
-      configService.get<string>('MESSAGE_EVENTS_LEGACY') !== 'false';
-  }
+  ) {}
 
   onApplicationBootstrap() {
     this.kick();
@@ -225,47 +213,6 @@ export class MessageEventsDispatcher
         : { type: row.type, payload: { message: proto } };
 
     await this._broadcast(guild.userIds, event);
-
-    if (this._legacyEvents) {
-      await this._publishLegacy(row, message, proto, guild);
-    }
-  }
-
-  private async _publishLegacy(
-    row: OutboxRow,
-    message: MessageEntity,
-    proto: Message,
-    guild: GuildRecipients,
-  ) {
-    const published = await this.centrifugoClient.publish(
-      `guild-channel:${message.channelId}`,
-      { type: row.type, payload: proto },
-    );
-
-    if (!published) throw new Error('Centrifugo publish не прошёл');
-
-    if (row.type !== 'MESSAGE_CREATED') return;
-
-    const meta = row.meta as MessageCreatedMeta;
-
-    await this._broadcast(
-      guild.userIds.filter((id) => id !== message.senderId),
-      {
-        type: 'NEW_GUILD_MESSAGE' satisfies keyof typeof NotificationType,
-        payload: {
-          messageId: message.id,
-          guildId: message.guildId,
-          guildName: guild.guildName,
-          channelId: message.channelId,
-          channelName: meta.channelName,
-          senderId: message.senderId,
-          senderName: meta.senderName,
-          senderAvatarUrl: meta.senderAvatarUrl,
-          preview: message.content.slice(0, MESSAGE_PREVIEW_LENGTH),
-          createdAt: message.createdAt,
-        },
-      },
-    );
   }
 
   // При повторе после частичного сбоя часть получателей получит событие
