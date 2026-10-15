@@ -84,7 +84,7 @@ export class MessagesService {
         payload: proto,
       });
 
-      void this._notifyGuildMembers(message, channel, sender).catch((error) =>
+      void this._notifyGuildMembers(message, proto, channel, sender).catch((error) =>
         console.error('Не удалось разослать уведомления о сообщении:', error),
       );
 
@@ -282,6 +282,7 @@ export class MessagesService {
 
   private async _notifyGuildMembers(
     message: MessageEntity,
+    proto: Message,
     channel: Channel,
     sender: GuildMember,
   ) {
@@ -311,6 +312,8 @@ export class MessagesService {
         senderAvatarUrl: sender.user?.avatarUrl ?? '',
         preview: message.content.slice(0, MESSAGE_PREVIEW_LENGTH),
         createdAt: message.createdAt,
+        // Полное сообщение — клиент кладёт его в кэш чата, даже если тот закрыт.
+        message: proto,
       },
     };
 
