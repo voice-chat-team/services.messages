@@ -27,3 +27,8 @@ export type Message = Prisma.MessageModel
  * 
  */
 export type MessageAttachment = Prisma.MessageAttachmentModel
+/**
+ * Model MessageOutbox
+ * 
+ */
+export type MessageOutbox = Prisma.MessageOutboxModel

@@ -9,7 +9,10 @@
 * 🟢 You can import this file directly.
 */
 
+export const MessageEventType = {
+  MESSAGE_CREATED: 'MESSAGE_CREATED',
+  MESSAGE_UPDATED: 'MESSAGE_UPDATED',
+  MESSAGE_DELETED: 'MESSAGE_DELETED'
+} as const
 
-
-// This file is empty because there are no enums in the schema.
-export {}
+export type MessageEventType = (typeof MessageEventType)[keyof typeof MessageEventType]

@@ -398,7 +398,8 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 export const ModelName = {
   Message: 'Message',
-  MessageAttachment: 'MessageAttachment'
+  MessageAttachment: 'MessageAttachment',
+  MessageOutbox: 'MessageOutbox'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -414,7 +415,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "message" | "messageAttachment"
+    modelProps: "message" | "messageAttachment" | "messageOutbox"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -566,6 +567,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    MessageOutbox: {
+      payload: Prisma.$MessageOutboxPayload<ExtArgs>
+      fields: Prisma.MessageOutboxFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MessageOutboxFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MessageOutboxPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MessageOutboxFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MessageOutboxPayload>
+        }
+        findFirst: {
+          args: Prisma.MessageOutboxFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MessageOutboxPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MessageOutboxFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MessageOutboxPayload>
+        }
+        findMany: {
+          args: Prisma.MessageOutboxFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MessageOutboxPayload>[]
+        }
+        create: {
+          args: Prisma.MessageOutboxCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MessageOutboxPayload>
+        }
+        createMany: {
+          args: Prisma.MessageOutboxCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MessageOutboxCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MessageOutboxPayload>[]
+        }
+        delete: {
+          args: Prisma.MessageOutboxDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MessageOutboxPayload>
+        }
+        update: {
+          args: Prisma.MessageOutboxUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MessageOutboxPayload>
+        }
+        deleteMany: {
+          args: Prisma.MessageOutboxDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MessageOutboxUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MessageOutboxUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MessageOutboxPayload>[]
+        }
+        upsert: {
+          args: Prisma.MessageOutboxUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MessageOutboxPayload>
+        }
+        aggregate: {
+          args: Prisma.MessageOutboxAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMessageOutbox>
+        }
+        groupBy: {
+          args: Prisma.MessageOutboxGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MessageOutboxGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MessageOutboxCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MessageOutboxCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -633,6 +708,20 @@ export const MessageAttachmentScalarFieldEnum = {
 export type MessageAttachmentScalarFieldEnum = (typeof MessageAttachmentScalarFieldEnum)[keyof typeof MessageAttachmentScalarFieldEnum]
 
 
+export const MessageOutboxScalarFieldEnum = {
+  id: 'id',
+  type: 'type',
+  messageId: 'messageId',
+  meta: 'meta',
+  attempts: 'attempts',
+  nextAttemptAt: 'nextAttemptAt',
+  lastError: 'lastError',
+  createdAt: 'createdAt'
+} as const
+
+export type MessageOutboxScalarFieldEnum = (typeof MessageOutboxScalarFieldEnum)[keyof typeof MessageOutboxScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -641,12 +730,37 @@ export const SortOrder = {
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
+export const NullableJsonNullValueInput = {
+  DbNull: DbNull,
+  JsonNull: JsonNull
+} as const
+
+export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
 export const QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
 } as const
 
 export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
+
+
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
+
+
+export const NullsOrder = {
+  first: 'first',
+  last: 'last'
+} as const
+
+export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
 
 
 
@@ -701,6 +815,34 @@ export type BigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 
  * Reference to a field of type 'BigInt[]'
  */
 export type ListBigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt[]'>
+    
+
+
+/**
+ * Reference to a field of type 'MessageEventType'
+ */
+export type EnumMessageEventTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MessageEventType'>
+    
+
+
+/**
+ * Reference to a field of type 'MessageEventType[]'
+ */
+export type ListEnumMessageEventTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MessageEventType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Json'
+ */
+export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+/**
+ * Reference to a field of type 'QueryMode'
+ */
+export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
     
 
 
@@ -884,6 +1026,7 @@ export type PrismaClientOptions = PrismaClientOptionsWithAccelerateUrl | PrismaC
 export type GlobalOmitConfig = {
   message?: Prisma.MessageOmit
   messageAttachment?: Prisma.MessageAttachmentOmit
+  messageOutbox?: Prisma.MessageOutboxOmit
 }
 
 /* Types for Logging */

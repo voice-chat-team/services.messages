@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { RpcException } from '@nestjs/microservices';
 import { RpcStatus } from '@voice-chat/common';
 import type {
-  Attachment,
   DeleteMessageRequest,
   GetAttachmentDownloadUrlRequest,
   GetAttachmentDownloadUrlResponse,
@@ -11,11 +10,6 @@ import type {
   SendMessageRequest,
   UpdateMessageRequest,
 } from '@voice-chat/contracts/gen/ts/messages';
-import type {
-  Message as MessageRecord,
-  MessageAttachment,
-} from 'prisma/generated/client';
-import { CentrifugoService } from 'src/infrastructure/centrifugo/centrifugo.service';
 import { PrismaService } from 'src/infrastructure/prisma/prisma.service';
 import { GuildClientGrpc } from '../guild/guild.grpc';
 import { FileClientGrpc } from '../file/file.grpc';
@@ -23,16 +17,13 @@ import {
   ChannelType,
   FilePurpose,
   FileStatus,
-  NotificationType,
 } from '@voice-chat/contracts/dist/constants';
-import type { Channel, GuildMember } from '@voice-chat/contracts/gen/ts/guilds';
+import { MessageEventsDispatcher } from './events/message-events.dispatcher';
+import { enqueueMessageEvent } from './events/message-events';
+import { MessageMapper, type MessageEntity } from './message.mapper';
 
 const DEFAULT_MESSAGES_LIMIT = 50;
-const MESSAGE_PREVIEW_LENGTH = 200;
-const BROADCAST_CHUNK_SIZE = 500;
 const MAX_ATTACHMENTS = 10;
-
-type MessageEntity = MessageRecord & { attachments?: MessageAttachment[] };
 
 @Injectable()
 export class MessagesService {
@@ -40,7 +31,8 @@ export class MessagesService {
     private readonly prisma: PrismaService,
     private readonly guildClient: GuildClientGrpc,
     private readonly fileClient: FileClientGrpc,
-    private readonly centrifugoClient: CentrifugoService,
+    private readonly mapper: MessageMapper,
+    private readonly events: MessageEventsDispatcher,
   ) {}
 
   async sendMessage(request: SendMessageRequest): Promise<Message> {
@@ -59,36 +51,41 @@ export class MessagesService {
     const files = await this._checkAttachments(attachmentFileIds, senderId);
 
     try {
-      const message = await this.prisma.message.create({
-        data: {
-          channelId,
-          guildId,
-          senderId,
-          content,
-          attachments: {
-            create: files.map((file) => ({
-              fileId: file.id,
-              fileName: file.fileName,
-              contentType: file.contentType,
-              sizeBytes: Number(file.sizeBytes),
-            })),
+      const message = await this.prisma.$transaction(async (tx) => {
+        const created = await tx.message.create({
+          data: {
+            channelId,
+            guildId,
+            senderId,
+            content,
+            attachments: {
+              create: files.map((file) => ({
+                fileId: file.id,
+                fileName: file.fileName,
+                contentType: file.contentType,
+                sizeBytes: Number(file.sizeBytes),
+              })),
+            },
           },
-        },
-        include: { attachments: true },
+          include: { attachments: true },
+        });
+
+        await enqueueMessageEvent(tx, {
+          type: 'MESSAGE_CREATED',
+          messageId: created.id,
+          meta: {
+            channelName: channel.name,
+            senderName: sender.user?.username ?? 'Пользователь',
+            senderAvatarUrl: sender.user?.avatarUrl ?? '',
+          },
+        });
+
+        return created;
       });
 
-      const proto = await this._toProto(message);
+      this.events.kick();
 
-      await this.centrifugoClient.publish(`guild-channel:${channelId}`, {
-        type: 'MESSAGE_CREATED',
-        payload: proto,
-      });
-
-      void this._notifyGuildMembers(message, proto, channel, sender).catch((error) =>
-        console.error('Не удалось разослать уведомления о сообщении:', error),
-      );
-
-      return proto;
+      return await this.mapper.toProto(message);
     } catch (error) {
       console.error(error);
       throw new RpcException({
@@ -120,7 +117,7 @@ export class MessagesService {
       include: { attachments: true },
     });
 
-    return Promise.all(messages.map((message) => this._toProto(message)));
+    return Promise.all(messages.map((message) => this.mapper.toProto(message)));
   }
 
   async updateMessage(request: UpdateMessageRequest): Promise<Message> {
@@ -131,20 +128,24 @@ export class MessagesService {
     await this._checkMember(guildId, userId);
 
     try {
-      const message = await this.prisma.message.update({
-        where: { id: messageId },
-        data: { content, isEdited: true },
-        include: { attachments: true },
+      const message = await this.prisma.$transaction(async (tx) => {
+        const updated = await tx.message.update({
+          where: { id: messageId },
+          data: { content, isEdited: true },
+          include: { attachments: true },
+        });
+
+        await enqueueMessageEvent(tx, {
+          type: 'MESSAGE_UPDATED',
+          messageId,
+        });
+
+        return updated;
       });
 
-      const proto = await this._toProto(message);
+      this.events.kick();
 
-      await this.centrifugoClient.publish(
-        `guild-channel:${existing.channelId}`,
-        { type: 'MESSAGE_UPDATED', payload: proto },
-      );
-
-      return proto;
+      return await this.mapper.toProto(message);
     } catch (error) {
       console.error(error);
       throw new RpcException({
@@ -162,19 +163,19 @@ export class MessagesService {
     await this._checkMember(guildId, userId);
 
     try {
-      const message = await this.prisma.message.update({
-        where: { id: messageId },
-        data: { isDeleted: true },
-        include: { attachments: true },
+      await this.prisma.$transaction(async (tx) => {
+        await tx.message.update({
+          where: { id: messageId },
+          data: { isDeleted: true },
+        });
+
+        await enqueueMessageEvent(tx, {
+          type: 'MESSAGE_DELETED',
+          messageId,
+        });
       });
 
-      await this.centrifugoClient.publish(
-        `guild-channel:${existing.channelId}`,
-        {
-          type: 'MESSAGE_DELETED',
-          payload: await this._toProto(message, false),
-        },
-      );
+      this.events.kick();
 
       return true;
     } catch (error) {
@@ -280,51 +281,6 @@ export class MessagesService {
     return channel;
   }
 
-  private async _notifyGuildMembers(
-    message: MessageEntity,
-    proto: Message,
-    channel: Channel,
-    sender: GuildMember,
-  ) {
-    const { guildId, senderId } = message;
-
-    const [{ members }, { guild }] = await Promise.all([
-      this.guildClient.call('getGuildMembers', { guildId }),
-      this.guildClient.call('getGuildById', { guildId }),
-    ]);
-
-    const channels = members
-      .filter((m) => !m.isBanned && m.userId !== senderId)
-      .map((m) => `personal:#${m.userId}:messages`);
-
-    if (!channels.length) return;
-
-    const event = {
-      type: 'NEW_GUILD_MESSAGE' satisfies keyof typeof NotificationType,
-      payload: {
-        messageId: message.id,
-        guildId,
-        guildName: guild?.name ?? '',
-        channelId: message.channelId,
-        channelName: channel.name,
-        senderId,
-        senderName: sender.user?.username ?? 'Пользователь',
-        senderAvatarUrl: sender.user?.avatarUrl ?? '',
-        preview: message.content.slice(0, MESSAGE_PREVIEW_LENGTH),
-        createdAt: message.createdAt,
-        // Полное сообщение — клиент кладёт его в кэш чата, даже если тот закрыт.
-        message: proto,
-      },
-    };
-
-    for (let i = 0; i < channels.length; i += BROADCAST_CHUNK_SIZE) {
-      await this.centrifugoClient.broadcast(
-        channels.slice(i, i + BROADCAST_CHUNK_SIZE),
-        event,
-      );
-    }
-  }
-
   private async _checkMember(guildId: string, userId: string) {
     const { memberInfo } = await this.guildClient.call('getMemberById', {
       guildId,
@@ -366,57 +322,5 @@ export class MessagesService {
     }
 
     return message;
-  }
-
-  private async _toProto(
-    message: MessageEntity,
-    withUrls = true,
-  ): Promise<Message> {
-    const attachments = await Promise.all(
-      (message.attachments ?? []).map((a) =>
-        this._attachmentToProto(a, withUrls),
-      ),
-    );
-
-    return {
-      id: message.id,
-      channelId: message.channelId,
-      guildId: message.guildId,
-      senderId: message.senderId,
-      content: message.content,
-      isEdited: message.isEdited,
-      isDeleted: message.isDeleted,
-      createdAt: message.createdAt.toISOString(),
-      updatedAt: message.updatedAt.toISOString(),
-      attachments,
-    };
-  }
-
-  private async _attachmentToProto(
-    attachment: MessageAttachment,
-    withUrl: boolean,
-  ): Promise<Attachment> {
-    let url = '';
-
-    if (withUrl) {
-      try {
-        const res = await this.fileClient.call('getDownloadUrl', {
-          fileId: attachment.fileId,
-          userId: '',
-        });
-        url = res.url;
-      } catch (error) {
-        // Сообщение должно отдаваться, даже если ссылка не выдалась
-        console.error('Не удалось получить ссылку на файл:', error);
-      }
-    }
-
-    return {
-      fileId: attachment.fileId,
-      fileName: attachment.fileName,
-      contentType: attachment.contentType,
-      sizeBytes: Number(attachment.sizeBytes),
-      url,
-    };
   }
 }

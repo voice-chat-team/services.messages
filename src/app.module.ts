@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { CentrifugoModule } from './infrastructure/centrifugo/centrifugo.module';
 import { PrismaModule } from './infrastructure/prisma/prisma.module';
 import { FileModule } from './modules/file/file.module';
@@ -12,6 +13,7 @@ import { MessagesModule } from './modules/messages/messages.module';
       isGlobal: true,
       envFilePath: [`.env.${process.env.NODE_ENV}.local`, '.env'],
     }),
+    ScheduleModule.forRoot(),
     PrismaModule,
     CentrifugoModule,
     GuildModule,

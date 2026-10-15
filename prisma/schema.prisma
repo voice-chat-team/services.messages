@@ -48,3 +48,29 @@ model MessageAttachment {
   @@index([messageId])
   @@map("message_attachments")
 }
+
+enum MessageEventType {
+  MESSAGE_CREATED
+  MESSAGE_UPDATED
+  MESSAGE_DELETED
+}
+
+model MessageOutbox {
+  id BigInt @id @default(autoincrement())
+
+  type      MessageEventType
+  messageId String           @map("message_id")
+  // Данные для уведомления, известные только в момент отправки
+  // (название канала, имя и аватар автора).
+  meta      Json?
+
+  attempts      Int       @default(0)
+
+  nextAttemptAt DateTime  @map("next_attempt_at")
+  lastError     String?   @map("last_error")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([nextAttemptAt])
+  @@map("message_outbox")
+}
