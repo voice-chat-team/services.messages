@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { RpcException } from '@nestjs/microservices';
-import { RpcStatus } from '@voice-chat/common';
+import {
+  assertGuildMember,
+  assertGuildPermission,
+  hasGuildPermission,
+  RpcStatus,
+} from '@voice-chat/common';
+import { Permission } from '@voice-chat/contracts';
 import type {
   DeleteMessageRequest,
   GetAttachmentDownloadUrlRequest,
@@ -48,6 +54,21 @@ export class MessagesService {
 
     const channel = await this._checkTextChannel(guildId, channelId);
     const sender = await this._checkMember(guildId, senderId);
+
+    assertGuildPermission(
+      sender,
+      Permission.SEND_MESSAGES,
+      'У вас нет права отправлять сообщения на этом сервере',
+    );
+
+    if (attachmentFileIds.length) {
+      assertGuildPermission(
+        sender,
+        Permission.ATTACH_FILES,
+        'У вас нет права прикреплять файлы на этом сервере',
+      );
+    }
+
     const files = await this._checkAttachments(attachmentFileIds, senderId);
 
     try {
@@ -98,9 +119,10 @@ export class MessagesService {
   async getChannelMessages(
     request: GetChannelMessagesRequest,
   ): Promise<Message[]> {
-    const { channelId, guildId, beforeMessageId, limit } = request;
+    const { channelId, guildId, userId, beforeMessageId, limit } = request;
 
     await this._checkTextChannel(guildId, channelId);
+    await this._checkMember(guildId, userId);
 
     const cursor = beforeMessageId
       ? await this._getMessageOrThrow(beforeMessageId, guildId)
@@ -159,8 +181,17 @@ export class MessagesService {
     const { messageId, guildId, userId } = request;
 
     const existing = await this._getMessageOrThrow(messageId, guildId);
-    this._checkAuthor(existing, userId);
-    await this._checkMember(guildId, userId);
+    const member = await this._checkMember(guildId, userId);
+
+    if (
+      existing.senderId !== userId &&
+      !hasGuildPermission(member, Permission.DELETE_MESSAGES)
+    ) {
+      throw new RpcException({
+        code: RpcStatus.PERMISSION_DENIED,
+        details: 'Удалять чужие сообщения можно только с правом на это',
+      });
+    }
 
     try {
       await this.prisma.$transaction(async (tx) => {
@@ -270,7 +301,7 @@ export class MessagesService {
       });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-enum-comparison
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     if (channel.type !== ChannelType.TEXT) {
       throw new RpcException({
         code: RpcStatus.INVALID_ARGUMENT,
@@ -287,12 +318,7 @@ export class MessagesService {
       userId,
     });
 
-    if (!memberInfo || memberInfo.isBanned) {
-      throw new RpcException({
-        code: RpcStatus.PERMISSION_DENIED,
-        details: 'Вы не являетесь участником сервера',
-      });
-    }
+    assertGuildMember(memberInfo);
 
     return memberInfo;
   }
