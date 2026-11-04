@@ -27,9 +27,7 @@ const MAX_BACKOFF_MS = 60_000;
 // хранятся с last_error для разбора.
 const DEAD_ROWS_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 const BROADCAST_CHUNK_SIZE = 500;
-// Список участников кэшируется, чтобы не ходить в сервис гильдий на каждое
-// событие. Цена: новый участник начнёт получать события с задержкой до TTL,
-// а забаненный — перестанет.
+// Кэшируется только название сервера. Допуск получателей проверяется заново для каждого события.
 const GUILD_CACHE_TTL_MS = 15_000;
 
 type OutboxRow = {
@@ -42,7 +40,6 @@ type OutboxRow = {
 
 type GuildRecipients = {
   guildName: string;
-  userIds: string[];
   expiresAt: number;
 };
 
@@ -212,7 +209,11 @@ export class MessageEventsDispatcher
           }
         : { type: row.type, payload: { message: proto } };
 
-    await this._broadcast(guild.userIds, event);
+    const { userIds } = await this.guildClient.call('getChannelRecipients', {
+      guildId: message.guildId,
+      channelId: message.channelId,
+    });
+    await this._broadcast(userIds, event);
   }
 
   // При повторе после частичного сбоя часть получателей получит событие
@@ -235,14 +236,10 @@ export class MessageEventsDispatcher
     const cached = this._guilds.get(guildId);
     if (cached && cached.expiresAt > now) return cached;
 
-    const [{ members }, { guild }] = await Promise.all([
-      this.guildClient.call('getGuildMembers', { guildId }),
-      this.guildClient.call('getGuildById', { guildId }),
-    ]);
+    const { guild } = await this.guildClient.call('getGuildById', { guildId });
 
     const entry: GuildRecipients = {
       guildName: guild?.name ?? '',
-      userIds: (members ?? []).filter((m) => !m.isBanned).map((m) => m.userId),
       expiresAt: now + GUILD_CACHE_TTL_MS,
     };
 

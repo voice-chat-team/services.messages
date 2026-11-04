@@ -52,7 +52,7 @@ export class MessagesService {
       });
     }
 
-    const channel = await this._checkTextChannel(guildId, channelId);
+    const channel = await this._checkTextChannel(guildId, channelId, senderId);
     const sender = await this._checkMember(guildId, senderId);
 
     assertGuildPermission(
@@ -121,7 +121,7 @@ export class MessagesService {
   ): Promise<Message[]> {
     const { channelId, guildId, userId, beforeMessageId, limit } = request;
 
-    await this._checkTextChannel(guildId, channelId);
+    await this._checkTextChannel(guildId, channelId, userId);
     await this._checkMember(guildId, userId);
 
     const cursor = beforeMessageId
@@ -146,6 +146,7 @@ export class MessagesService {
     const { messageId, guildId, userId, content } = request;
 
     const existing = await this._getMessageOrThrow(messageId, guildId);
+    await this._checkTextChannel(guildId, existing.channelId, userId);
     this._checkAuthor(existing, userId);
     await this._checkMember(guildId, userId);
 
@@ -181,6 +182,7 @@ export class MessagesService {
     const { messageId, guildId, userId } = request;
 
     const existing = await this._getMessageOrThrow(messageId, guildId);
+    await this._checkTextChannel(guildId, existing.channelId, userId);
     const member = await this._checkMember(guildId, userId);
 
     if (
@@ -235,6 +237,11 @@ export class MessagesService {
       });
     }
 
+    await this._checkTextChannel(
+      attachment.message.guildId,
+      attachment.message.channelId,
+      userId,
+    );
     await this._checkMember(attachment.message.guildId, userId);
 
     return this.fileClient.call('getDownloadUrl', { fileId, userId });
@@ -287,9 +294,14 @@ export class MessagesService {
     return files;
   }
 
-  private async _checkTextChannel(guildId: string, channelId: string) {
+  private async _checkTextChannel(
+    guildId: string,
+    channelId: string,
+    userId: string,
+  ) {
     const { channels } = await this.guildClient.call('getGuildChannels', {
       guildId,
+      userId,
     });
 
     const channel = channels.find((c) => c.id === channelId);
