@@ -321,6 +321,18 @@ export class MessagesService {
       });
     }
 
+    if (channel.isPrivate) {
+      const { userIds } = await this.guildClient.call('getChannelRecipients', {
+        guildId,
+        channelId,
+      });
+      if (!userIds.includes(userId)) {
+        throw new RpcException({
+          code: RpcStatus.PERMISSION_DENIED,
+          details: 'Нет доступа к переписке этого канала',
+        });
+      }
+    }
     return channel;
   }
 
