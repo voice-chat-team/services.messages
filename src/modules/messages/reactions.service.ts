@@ -147,6 +147,7 @@ export class ReactionsService {
           })
         ).users
       : [];
+
     return {
       users: page.map((row) => ({
         userId: row.userId,
