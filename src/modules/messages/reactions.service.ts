@@ -103,11 +103,14 @@ export class ReactionsService {
   }
 
   async getReactionUsers(request: GetReactionUsersRequest) {
-    this.validateEmoji(request.emoji);
+    if (request.emoji) this.validateEmoji(request.emoji);
     await this.messages.checkReactionAccess(request);
 
     const limit = Math.min(Math.max(request.limit || 30, 1), 100);
-    const where = { messageId: request.messageId, emoji: request.emoji };
+    const where = {
+      messageId: request.messageId,
+      ...(request.emoji ? { emoji: request.emoji } : {}),
+    };
 
     const cursor = request.cursor
       ? await this.prisma.messageReaction.findFirst({
@@ -140,13 +143,15 @@ export class ReactionsService {
     const profiles = page.length
       ? (
           await this.users.call('getRangeUsersById', {
-            usersId: page.map((r) => r.userId),
+            usersId: [...new Set(page.map((r) => r.userId))],
           })
         ).users
       : [];
     return {
       users: page.map((row) => ({
         userId: row.userId,
+        emoji: row.emoji,
+        createdAt: row.createdAt.toISOString(),
         user: profiles.find((u) => u.id === row.userId),
       })),
       nextCursor: rows.length > limit ? page[page.length - 1].id : '',
