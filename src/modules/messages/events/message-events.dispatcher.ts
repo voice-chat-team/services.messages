@@ -183,6 +183,48 @@ export class MessageEventsDispatcher
   }
 
   private async _dispatch(row: OutboxRow) {
+    if (row.type === 'MESSAGE_REACTION_UPDATED') {
+      const emoji = (row.meta as { emoji: string }).emoji;
+      const message = await this.prisma.$transaction(async (tx) => {
+        await tx.$queryRawUnsafe(
+          'SELECT id FROM messages WHERE id = $1 FOR SHARE',
+          row.messageId,
+        );
+        return tx.message.findUnique({
+          where: { id: row.messageId },
+          include: { reactions: { where: { emoji } } },
+        });
+      });
+
+      if (!message || message.isDeleted) return;
+
+      const { userIds } = await this.guildClient.call('getChannelRecipients', {
+        guildId: message.guildId,
+        channelId: message.channelId,
+      });
+      const reactedIds = new Set(message.reactions.map((r) => r.userId));
+
+      for (const reacted of [true, false]) {
+        await this._broadcast(
+          userIds.filter((id) => reactedIds.has(id) === reacted),
+          {
+            type: 'MESSAGE_REACTION_UPDATED',
+            payload: {
+              guildId: message.guildId,
+              channelId: message.channelId,
+              messageId: message.id,
+              emoji,
+              count: message.reactions.length,
+              reacted,
+              version: message.reactionsVersion,
+            },
+          },
+        );
+      }
+
+      return;
+    }
+
     const message = await this.prisma.message.findUnique({
       where: { id: row.messageId },
       include: { attachments: true },

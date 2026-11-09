@@ -6,18 +6,24 @@ import type {
 import type {
   Message as MessageRecord,
   MessageAttachment,
+  MessageReaction,
 } from 'prisma/generated/client';
 import { FileClientGrpc } from '../file/file.grpc';
 
 export type MessageEntity = MessageRecord & {
   attachments?: MessageAttachment[];
+  reactions?: MessageReaction[];
 };
 
 @Injectable()
 export class MessageMapper {
   constructor(private readonly fileClient: FileClientGrpc) {}
 
-  async toProto(message: MessageEntity, withUrls = true): Promise<Message> {
+  async toProto(
+    message: MessageEntity,
+    withUrls = true,
+    userId?: string,
+  ): Promise<Message> {
     const attachments = await Promise.all(
       (message.attachments ?? []).map((a) =>
         this._attachmentToProto(a, withUrls),
@@ -35,6 +41,16 @@ export class MessageMapper {
       createdAt: message.createdAt.toISOString(),
       updatedAt: message.updatedAt.toISOString(),
       attachments,
+      reactionsVersion: message.reactionsVersion,
+      reactions: [
+        ...new Set((message.reactions ?? []).map((r) => r.emoji)),
+      ].map((emoji) => ({
+        emoji,
+        count: message.reactions!.filter((r) => r.emoji === emoji).length,
+        reacted: message.reactions!.some(
+          (r) => r.emoji === emoji && r.userId === userId,
+        ),
+      })),
     };
   }
 

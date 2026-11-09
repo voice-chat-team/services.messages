@@ -128,18 +128,24 @@ export class MessagesService {
       ? await this._getMessageOrThrow(beforeMessageId, guildId)
       : undefined;
 
-    const messages = await this.prisma.message.findMany({
-      where: {
-        channelId,
-        isDeleted: false,
-        ...(cursor && { createdAt: { lt: cursor.createdAt } }),
-      },
-      orderBy: { createdAt: 'desc' },
-      take: limit > 0 ? limit : DEFAULT_MESSAGES_LIMIT,
-      include: { attachments: true },
-    });
+    const messages = await this.prisma.$transaction(
+      (tx) =>
+        tx.message.findMany({
+          where: {
+            channelId,
+            isDeleted: false,
+            ...(cursor && { createdAt: { lt: cursor.createdAt } }),
+          },
+          orderBy: { createdAt: 'desc' },
+          take: limit > 0 ? limit : DEFAULT_MESSAGES_LIMIT,
+          include: { attachments: true, reactions: true },
+        }),
+      { isolationLevel: 'RepeatableRead' },
+    );
 
-    return Promise.all(messages.map((message) => this.mapper.toProto(message)));
+    return Promise.all(
+      messages.map((message) => this.mapper.toProto(message, true, userId)),
+    );
   }
 
   async updateMessage(request: UpdateMessageRequest): Promise<Message> {
@@ -245,6 +251,24 @@ export class MessagesService {
     await this._checkMember(attachment.message.guildId, userId);
 
     return this.fileClient.call('getDownloadUrl', { fileId, userId });
+  }
+
+  async checkReactionAccess(request: {
+    messageId: string;
+    guildId: string;
+    userId: string;
+  }) {
+    const message = await this._getMessageOrThrow(
+      request.messageId,
+      request.guildId,
+    );
+    await this._checkTextChannel(
+      request.guildId,
+      message.channelId,
+      request.userId,
+    );
+    await this._checkMember(request.guildId, request.userId);
+    return message;
   }
 
   private async _checkAttachments(fileIds: string[], senderId: string) {

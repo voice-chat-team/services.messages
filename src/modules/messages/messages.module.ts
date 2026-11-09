@@ -1,3 +1,4 @@
+import { ReactionsService } from './reactions.service';
 import { Module } from '@nestjs/common';
 import { MessageEventsDispatcher } from './events/message-events.dispatcher';
 import { MessageMapper } from './message.mapper';
@@ -6,6 +7,11 @@ import { MessagesService } from './messages.service';
 
 @Module({
   controllers: [MessagesController],
-  providers: [MessagesService, MessageMapper, MessageEventsDispatcher],
+  providers: [
+    ReactionsService,
+    MessagesService,
+    MessageMapper,
+    MessageEventsDispatcher,
+  ],
 })
 export class MessagesModule {}

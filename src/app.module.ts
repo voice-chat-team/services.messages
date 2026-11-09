@@ -1,3 +1,4 @@
+import { UserModule } from './modules/user/user.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -18,6 +19,7 @@ import { MessagesModule } from './modules/messages/messages.module';
     CentrifugoModule,
     GuildModule,
     FileModule,
+    UserModule,
     MessagesModule,
   ],
   controllers: [],

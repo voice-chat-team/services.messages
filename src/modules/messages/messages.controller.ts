@@ -1,3 +1,11 @@
+import { ReactionsService } from './reactions.service';
+import type {
+  AddReactionRequest,
+  AddReactionResponse,
+  RemoveReactionRequest,
+  RemoveReactionResponse,
+  GetReactionUsersRequest,
+} from '@voice-chat/contracts/gen/ts/messages';
 import { Controller } from '@nestjs/common';
 import { GrpcMethod } from '@nestjs/microservices';
 import type {
@@ -16,7 +24,27 @@ import { MessagesService } from './messages.service';
 
 @Controller()
 export class MessagesController {
-  constructor(private readonly messagesService: MessagesService) {}
+  constructor(
+    private readonly messagesService: MessagesService,
+    private readonly reactions: ReactionsService,
+  ) {}
+
+  @GrpcMethod('MessageService', 'AddReaction')
+  addReaction(request: AddReactionRequest): Promise<AddReactionResponse> {
+    return this.reactions.change(request, true);
+  }
+
+  @GrpcMethod('MessageService', 'RemoveReaction')
+  removeReaction(
+    request: RemoveReactionRequest,
+  ): Promise<RemoveReactionResponse> {
+    return this.reactions.change(request, false);
+  }
+
+  @GrpcMethod('MessageService', 'GetReactionUsers')
+  getReactionUsers(request: GetReactionUsersRequest) {
+    return this.reactions.getReactionUsers(request);
+  }
 
   @GrpcMethod('MessageService', 'SendMessage')
   async sendMessage(request: SendMessageRequest): Promise<SendMessageResponse> {

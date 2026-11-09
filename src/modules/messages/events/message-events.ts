@@ -26,7 +26,21 @@ export type MessageChangedEvent = {
   payload: { message: Message };
 };
 
-export type MessageEvent = MessageCreatedEvent | MessageChangedEvent;
+export type MessageReactionUpdatedEvent = {
+  type: 'MESSAGE_REACTION_UPDATED';
+  payload: {
+    guildId: string;
+    channelId: string;
+    messageId: string;
+    emoji: string;
+    count: number;
+    reacted: boolean;
+    version: number;
+  };
+};
+
+export type MessageEvent =
+  MessageCreatedEvent | MessageChangedEvent | MessageReactionUpdatedEvent;
 
 type EnqueueParams =
   | { type: 'MESSAGE_CREATED'; messageId: string; meta: MessageCreatedMeta }
