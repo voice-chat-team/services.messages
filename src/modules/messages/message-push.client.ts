@@ -25,9 +25,10 @@ export class MessagePushClient {
         service.enqueueMessagePush(request).pipe(timeout(2_000)),
       );
       if (!response.status) throw new Error('Push job was not accepted');
-    } catch {
+    } catch (error) {
       this.logger.warn(
         `Push job handoff failed for message ${request.messageId}`,
+        error,
       );
     }
   }
