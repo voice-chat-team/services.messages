@@ -27,6 +27,7 @@ import {
 import { MessageEventsDispatcher } from './events/message-events.dispatcher';
 import { enqueueMessageEvent } from './events/message-events';
 import { MessageMapper, type MessageEntity } from './message.mapper';
+import { MessagePushClient } from './message-push.client';
 
 const DEFAULT_MESSAGES_LIMIT = 50;
 const MAX_ATTACHMENTS = 10;
@@ -39,6 +40,7 @@ export class MessagesService {
     private readonly fileClient: FileClientGrpc,
     private readonly mapper: MessageMapper,
     private readonly events: MessageEventsDispatcher,
+    private readonly pushClient: MessagePushClient,
   ) {}
 
   async sendMessage(request: SendMessageRequest): Promise<Message> {
@@ -105,6 +107,21 @@ export class MessagesService {
       });
 
       this.events.kick();
+
+      await this.pushClient.enqueue({
+        messageId: message.id,
+        guildId,
+        channelId,
+        senderId,
+        senderName: Array.from(sender.user?.username || 'Пользователь')
+          .slice(0, 80)
+          .join(''),
+        channelName: Array.from(channel.name).slice(0, 80).join(''),
+        body: Array.from(content.trim() || 'Вложение')
+          .slice(0, 200)
+          .join(''),
+        createdAt: message.createdAt.toISOString(),
+      });
 
       return await this.mapper.toProto(message);
     } catch (error) {
