@@ -37,3 +37,8 @@ export type MessageOutbox = Prisma.MessageOutboxModel
  * 
  */
 export type MessageReaction = Prisma.MessageReactionModel
+/**
+ * Model MessagePushOutbox
+ * 
+ */
+export type MessagePushOutbox = Prisma.MessagePushOutboxModel

@@ -4,14 +4,12 @@ import { MessageEventsDispatcher } from './events/message-events.dispatcher';
 import { MessageMapper } from './message.mapper';
 import { MessagesController } from './messages.controller';
 import { MessagesService } from './messages.service';
-import { GrpcModule } from '@voice-chat/common';
-import { MessagePushClient } from './message-push.client';
+import { MessagePushDispatcher } from './push/message-push.dispatcher';
 
 @Module({
-  imports: [GrpcModule.register(['NOTIFICATION_PACKAGE'])],
   controllers: [MessagesController],
   providers: [
-    MessagePushClient,
+    MessagePushDispatcher,
     ReactionsService,
     MessagesService,
     MessageMapper,

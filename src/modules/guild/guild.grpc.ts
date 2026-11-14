@@ -5,7 +5,9 @@ import type { GuildServiceClient } from '@voice-chat/contracts/gen/ts/guilds';
 
 @Injectable()
 export class GuildClientGrpc extends AbstractGrpcClient<GuildServiceClient> {
-  constructor(@InjectGrpcClient('GUILD_PACKAGE') client: ClientGrpc) {
-    super(client, 'GuildService');
+  constructor(
+    @InjectGrpcClient('GUILD_PACKAGE') private readonly pushClient: ClientGrpc,
+  ) {
+    super(pushClient, 'GuildService');
   }
 }

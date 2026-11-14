@@ -27,7 +27,10 @@ import {
 import { MessageEventsDispatcher } from './events/message-events.dispatcher';
 import { enqueueMessageEvent } from './events/message-events';
 import { MessageMapper, type MessageEntity } from './message.mapper';
-import { MessagePushClient } from './message-push.client';
+import {
+  MessagePushDispatcher,
+  MESSAGE_PUSH_TTL_MS,
+} from './push/message-push.dispatcher';
 
 const DEFAULT_MESSAGES_LIMIT = 50;
 const MAX_ATTACHMENTS = 10;
@@ -40,7 +43,7 @@ export class MessagesService {
     private readonly fileClient: FileClientGrpc,
     private readonly mapper: MessageMapper,
     private readonly events: MessageEventsDispatcher,
-    private readonly pushClient: MessagePushClient,
+    private readonly pushes: MessagePushDispatcher,
   ) {}
 
   async sendMessage(request: SendMessageRequest): Promise<Message> {
@@ -103,25 +106,33 @@ export class MessagesService {
           },
         });
 
+        const senderName = Array.from(sender.user?.username || 'Пользователь')
+          .slice(0, 80)
+          .join('');
+        const channelName = Array.from(channel.name).slice(0, 80).join('');
+
+        await tx.messagePushOutbox.create({
+          data: {
+            messageId: created.id,
+            guildId,
+            channelId,
+            senderId,
+            title: `${senderName} · #${channelName}`,
+            body: Array.from(content.trim() || 'Вложение')
+              .slice(0, 200)
+              .join(''),
+            createdAt: created.createdAt,
+            expiresAt: new Date(
+              created.createdAt.getTime() + MESSAGE_PUSH_TTL_MS,
+            ),
+          },
+        });
+
         return created;
       });
 
       this.events.kick();
-
-      await this.pushClient.enqueue({
-        messageId: message.id,
-        guildId,
-        channelId,
-        senderId,
-        senderName: Array.from(sender.user?.username || 'Пользователь')
-          .slice(0, 80)
-          .join(''),
-        channelName: Array.from(channel.name).slice(0, 80).join(''),
-        body: Array.from(content.trim() || 'Вложение')
-          .slice(0, 200)
-          .join(''),
-        createdAt: message.createdAt.toISOString(),
-      });
+      this.pushes.kick();
 
       return await this.mapper.toProto(message);
     } catch (error) {

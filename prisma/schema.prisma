@@ -94,3 +94,28 @@ model MessageReaction {
 
   @@map("message_reactions")
 }
+
+// Durable handoff to notification, independent of realtime events.
+model MessagePushOutbox {
+  messageId     String    @id @map("message_id")
+  guildId       String    @map("guild_id")
+  channelId     String    @map("channel_id")
+  senderId      String    @map("sender_id")
+
+  title         String
+  body          String
+
+  createdAt     DateTime  @map("created_at")
+  expiresAt     DateTime  @map("expires_at")
+
+  attempts      Int       @default(0)
+  nextAttemptAt DateTime  @default(now()) @map("next_attempt_at")
+  leaseId       String?   @map("lease_id")
+
+  completedAt   DateTime? @map("completed_at")
+  lastError     String?   @map("last_error")
+
+  @@index([completedAt, nextAttemptAt])
+  @@index([expiresAt])
+  @@map("message_push_outbox")
+}

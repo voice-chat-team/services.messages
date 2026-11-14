@@ -400,7 +400,8 @@ export const ModelName = {
   Message: 'Message',
   MessageAttachment: 'MessageAttachment',
   MessageOutbox: 'MessageOutbox',
-  MessageReaction: 'MessageReaction'
+  MessageReaction: 'MessageReaction',
+  MessagePushOutbox: 'MessagePushOutbox'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -416,7 +417,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "message" | "messageAttachment" | "messageOutbox" | "messageReaction"
+    modelProps: "message" | "messageAttachment" | "messageOutbox" | "messageReaction" | "messagePushOutbox"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -716,6 +717,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    MessagePushOutbox: {
+      payload: Prisma.$MessagePushOutboxPayload<ExtArgs>
+      fields: Prisma.MessagePushOutboxFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MessagePushOutboxFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MessagePushOutboxPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MessagePushOutboxFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MessagePushOutboxPayload>
+        }
+        findFirst: {
+          args: Prisma.MessagePushOutboxFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MessagePushOutboxPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MessagePushOutboxFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MessagePushOutboxPayload>
+        }
+        findMany: {
+          args: Prisma.MessagePushOutboxFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MessagePushOutboxPayload>[]
+        }
+        create: {
+          args: Prisma.MessagePushOutboxCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MessagePushOutboxPayload>
+        }
+        createMany: {
+          args: Prisma.MessagePushOutboxCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MessagePushOutboxCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MessagePushOutboxPayload>[]
+        }
+        delete: {
+          args: Prisma.MessagePushOutboxDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MessagePushOutboxPayload>
+        }
+        update: {
+          args: Prisma.MessagePushOutboxUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MessagePushOutboxPayload>
+        }
+        deleteMany: {
+          args: Prisma.MessagePushOutboxDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MessagePushOutboxUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MessagePushOutboxUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MessagePushOutboxPayload>[]
+        }
+        upsert: {
+          args: Prisma.MessagePushOutboxUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MessagePushOutboxPayload>
+        }
+        aggregate: {
+          args: Prisma.MessagePushOutboxAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMessagePushOutbox>
+        }
+        groupBy: {
+          args: Prisma.MessagePushOutboxGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MessagePushOutboxGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MessagePushOutboxCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MessagePushOutboxCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -807,6 +882,25 @@ export const MessageReactionScalarFieldEnum = {
 } as const
 
 export type MessageReactionScalarFieldEnum = (typeof MessageReactionScalarFieldEnum)[keyof typeof MessageReactionScalarFieldEnum]
+
+
+export const MessagePushOutboxScalarFieldEnum = {
+  messageId: 'messageId',
+  guildId: 'guildId',
+  channelId: 'channelId',
+  senderId: 'senderId',
+  title: 'title',
+  body: 'body',
+  createdAt: 'createdAt',
+  expiresAt: 'expiresAt',
+  attempts: 'attempts',
+  nextAttemptAt: 'nextAttemptAt',
+  leaseId: 'leaseId',
+  completedAt: 'completedAt',
+  lastError: 'lastError'
+} as const
+
+export type MessagePushOutboxScalarFieldEnum = (typeof MessagePushOutboxScalarFieldEnum)[keyof typeof MessagePushOutboxScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1115,6 +1209,7 @@ export type GlobalOmitConfig = {
   messageAttachment?: Prisma.MessageAttachmentOmit
   messageOutbox?: Prisma.MessageOutboxOmit
   messageReaction?: Prisma.MessageReactionOmit
+  messagePushOutbox?: Prisma.MessagePushOutboxOmit
 }
 
 /* Types for Logging */

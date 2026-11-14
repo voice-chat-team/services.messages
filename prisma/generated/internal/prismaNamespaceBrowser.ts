@@ -54,7 +54,8 @@ export const ModelName = {
   Message: 'Message',
   MessageAttachment: 'MessageAttachment',
   MessageOutbox: 'MessageOutbox',
-  MessageReaction: 'MessageReaction'
+  MessageReaction: 'MessageReaction',
+  MessagePushOutbox: 'MessagePushOutbox'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -125,6 +126,25 @@ export const MessageReactionScalarFieldEnum = {
 } as const
 
 export type MessageReactionScalarFieldEnum = (typeof MessageReactionScalarFieldEnum)[keyof typeof MessageReactionScalarFieldEnum]
+
+
+export const MessagePushOutboxScalarFieldEnum = {
+  messageId: 'messageId',
+  guildId: 'guildId',
+  channelId: 'channelId',
+  senderId: 'senderId',
+  title: 'title',
+  body: 'body',
+  createdAt: 'createdAt',
+  expiresAt: 'expiresAt',
+  attempts: 'attempts',
+  nextAttemptAt: 'nextAttemptAt',
+  leaseId: 'leaseId',
+  completedAt: 'completedAt',
+  lastError: 'lastError'
+} as const
+
+export type MessagePushOutboxScalarFieldEnum = (typeof MessagePushOutboxScalarFieldEnum)[keyof typeof MessagePushOutboxScalarFieldEnum]
 
 
 export const SortOrder = {

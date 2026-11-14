@@ -7,6 +7,7 @@ import { PrismaModule } from './infrastructure/prisma/prisma.module';
 import { FileModule } from './modules/file/file.module';
 import { GuildModule } from './modules/guild/guild.module';
 import { MessagesModule } from './modules/messages/messages.module';
+import { NotificationModule } from './modules/notification/notification.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { MessagesModule } from './modules/messages/messages.module';
     FileModule,
     UserModule,
     MessagesModule,
+    NotificationModule,
   ],
   controllers: [],
   providers: [],
